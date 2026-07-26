@@ -47,17 +47,18 @@ def salvar_exame(exame: Exame):
 
 @app.get("/leituras")
 def listar_exames():
-    with conectar_banco() as conexao:
-        with conexao.cursor() as cursor:
-            cursor.execute(
-                "SELECT ph, turbidez, tds, temperatura, criado_em "
-                "FROM leituras ORDER BY criado_em DESC"
-            )
-            linhas = cursor.fetchall()
-    return [
-        {
-            "ph": l[0], "turbidez": l[1], "tds": l[2],
-            "temperatura": l[3], "criado_em": l[4].isoformat(),
-        }
-        for l in linhas
-    ]
+    return "Opa Teste"
+    # with conectar_banco() as conexao:
+    #     with conexao.cursor() as cursor:
+    #         cursor.execute(
+    #             "SELECT ph, turbidez, tds, temperatura, criado_em "
+    #             "FROM leituras ORDER BY criado_em DESC"
+    #         )
+    #         linhas = cursor.fetchall()
+    # return [
+    #     {
+    #         "ph": l[0], "turbidez": l[1], "tds": l[2],
+    #         "temperatura": l[3], "criado_em": l[4].isoformat(),
+    #     }
+    #     for l in linhas
+    # ]
