@@ -1,8 +1,11 @@
 import os
 import psycopg
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+load_dotenv()
 
 app = FastAPI(title="API da SmartBarrera")
 
@@ -24,7 +27,13 @@ class Exame(BaseModel):
 
 def conectar_banco():
     """Abre conexão com o Neon usando DATABASE_URL (pooler)."""
-    return psycopg.connect(os.environ["DATABASE_URL"])
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL não está definida. Copie o .env.example para .env "
+            "e cole ali a connection string do Neon."
+        )
+    return psycopg.connect(url)
 
 
 @app.get("/api")
@@ -47,18 +56,17 @@ def salvar_exame(exame: Exame):
 
 @app.get("/leituras")
 def listar_exames():
-    return "Opa Teste"
-    # with conectar_banco() as conexao:
-    #     with conexao.cursor() as cursor:
-    #         cursor.execute(
-    #             "SELECT ph, turbidez, tds, temperatura, criado_em "
-    #             "FROM leituras ORDER BY criado_em DESC"
-    #         )
-    #         linhas = cursor.fetchall()
-    # return [
-    #     {
-    #         "ph": l[0], "turbidez": l[1], "tds": l[2],
-    #         "temperatura": l[3], "criado_em": l[4].isoformat(),
-    #     }
-    #     for l in linhas
-    # ]
+    with conectar_banco() as conexao:
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "SELECT ph, turbidez, tds, temperatura, creiado_em "
+                "FROM leituras ORDER BY creiado_em DESC"
+            )
+            linhas = cursor.fetchall()
+    return [
+        {
+            "ph": l[0], "turbidez": l[1], "tds": l[2],
+            "temperatura": l[3], "criado_em": l[4].isoformat(),
+        }
+        for l in linhas
+    ]
