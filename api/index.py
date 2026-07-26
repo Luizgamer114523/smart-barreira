@@ -23,6 +23,10 @@ def conectar_banco():
     """Abre uma conexao com o banco Neon usando a variavel DATABASE_URL."""
     return psycopg2.connect("postgresql://neondb_owner:npg_43BetITFXaGS@ep-quiet-sea-axyyb7bt.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require")
 
+@app.get("/api")
+def read_root():
+    return {"ok": True}
+
 @app.post("/leituras")
 def salvar_exame(exame: Exame):
     """Recebe um exame da AquaBarreira e guarda no banco de dados."""
