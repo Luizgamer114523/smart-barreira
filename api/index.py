@@ -1,5 +1,5 @@
 import os
-import psycopg2
+import psycopg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,61 +10,54 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
-class Item(BaseModel):
-    """um exame de qualidade da água enviado pela smartbarrera."""
+
+
+class Exame(BaseModel):
+    """Um exame de qualidade da água enviado pela SmartBarrera."""
     ph: float
     turbidez: int
     tds: int
     temperatura: float
 
+
 def conectar_banco():
-    """Abre uma conexao com o banco Neon usando a variavel DATABASE_URL."""
-    return psycopg2.connect("postgresql://neondb_owner:npg_43BetITFXaGS@ep-quiet-sea-axyyb7bt.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require")
+    """Abre conexão com o Neon usando DATABASE_URL (pooler)."""
+    return psycopg.connect(os.environ["DATABASE_URL"])
+
 
 @app.get("/api")
 def read_root():
     return {"ok": True}
 
+
 @app.post("/leituras")
 def salvar_exame(exame: Exame):
-    """Recebe um exame da AquaBarreira e guarda no banco de dados."""
-    conexao = conectar_banco()
-    cursor = conexao.cursor()
-    cursor.execute(
-        """
-        INSERT INTO leituras (ph, turbidez, tds, temperatura)
-        VALUES (%s, %s, %s, %s)
-        """,
-        (exame.ph, exame.turbidez, exame.tds, exame.temperatura),
-    )
-    conexao.commit()
-    cursor.close()
-    conexao.close()
+    with conectar_banco() as conexao:
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO leituras (ph, turbidez, tds, temperatura) "
+                "VALUES (%s, %s, %s, %s)",
+                (exame.ph, exame.turbidez, exame.tds, exame.temperatura),
+            )
+        conexao.commit()
     return {"mensagem": "Exame guardado com sucesso!"}
+
 
 @app.get("/leituras")
 def listar_exames():
-    """Devolve todos os exames guardados, do mais novo para o mais antigo."""
-    conexao = conectar_banco()
-    cursor = conexao.cursor()
-    cursor.execute(
-        """
-        SELECT ph, turbidez, tds, temperatura, criado_em
-        FROM leituras
-        ORDER BY criado_em DESC
-        """
-    )
-    linhas = cursor.fetchall()
-    cursor.close()
-    conexao.close()
+    with conectar_banco() as conexao:
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "SELECT ph, turbidez, tds, temperatura, criado_em "
+                "FROM leituras ORDER BY criado_em DESC"
+            )
+            linhas = cursor.fetchall()
     return [
         {
-            "ph": linha[0], "turbidez": linha[1], "tds": linha[2],
-            "temperatura": linha[3], "criado_em": linha[4].isoformat(),
+            "ph": l[0], "turbidez": l[1], "tds": l[2],
+            "temperatura": l[3], "criado_em": l[4].isoformat(),
         }
-        for linha in linhas
+        for l in linhas
     ]
-    
-    # postgresql://neondb_owner:npg_43BetITFXaGS@ep-quiet-sea-axyyb7bt.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
